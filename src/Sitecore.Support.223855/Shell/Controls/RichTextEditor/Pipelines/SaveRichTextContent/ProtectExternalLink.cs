@@ -52,11 +52,52 @@
 
         if (!this.IsInternalLink(aNode))
         {
-          string protectedLink = aNode.Insert(2, " rel=\"noopener noreferrer\"");
-          args.Content = args.Content.Replace(aNode, protectedLink);
+          int relStartPosition = aNode.IndexOf(" rel=");
+
+          if (relStartPosition < 0)
+          {
+            string protectedLink = aNode.Insert(2, " rel=\"noopener noreferrer\"");
+            args.Content = args.Content.Replace(aNode, protectedLink);
+          }
+
+          else
+          {
+            relStartPosition += 5;
+            int relEndPosition = aNode.IndexOf("\"", relStartPosition + 1) + 1;
+            int noopenerPosition = GetValuePosition(aNode, "noopener", relStartPosition, relEndPosition - relStartPosition);
+            string protectedLink = aNode;
+
+            if (noopenerPosition < 0)
+            {
+              protectedLink = protectedLink.Insert(relStartPosition + 1, "noopener ");
+              relEndPosition += 9;
+              noopenerPosition = relStartPosition + 1;
+            }
+
+            int noreferrerPosition = GetValuePosition(aNode, "noreferrer", relStartPosition, relEndPosition - relStartPosition);
+
+            if (noreferrerPosition < 0)
+            {
+              protectedLink = protectedLink.Insert(noopenerPosition + 8, " noreferrer");
+            }
+
+            args.Content = args.Content.Replace(aNode, protectedLink);
+          }
         }
       }
 
+    }
+
+    private int GetValuePosition(string input, string substring, int start, int length)
+    {
+      var regex = new Regex("[\" ]" + substring + "[\" ]", RegexOptions.ECMAScript);
+
+      var match = regex.Match(input, start, length);
+
+      if (!match.Success)
+        return -1;
+
+      return match.Index + 1;
     }
 
     /// <summary>
